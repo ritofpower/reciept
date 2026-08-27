@@ -55,6 +55,9 @@ textarea.mono{font-family:var(--n);font-size:11.5px;line-height:1.5;resize:verti
 .step > h2 b{flex:none;width:21px;height:21px;border-radius:50%;background:var(--rule);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:0}
 .field{margin-bottom:11px}
 .field > label{display:block;font-size:12.5px;color:var(--soft);margin-bottom:4px}
+.autosave{float:right;font-size:11px;color:var(--soft)}
+.autosave.ok{color:var(--ok)}
+.autosave.bad{color:#a03535}
 .ctl{width:100%;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:5px}
 .ctl:focus{border-color:var(--rule)}
 .ctl[readonly]{background:#f2f4f7;color:var(--soft)}
@@ -234,7 +237,7 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
       </div>
     </div>
     <div class="field" style="margin-top:11px">
-      <label for="shopName">ชื่อร้าน</label>
+      <label for="shopName">ชื่อร้าน <span class="autosave" id="shopSaveState"></span></label>
       <input class="ctl" id="shopName" type="text">
     </div>
   </section>
@@ -562,7 +565,7 @@ async function pullAll(){
   });
   const rdSnap=await withTimeout(getDocs(collection(FB.db,'readings')),12000);
   rdSnap.forEach(d=>{
-    const v=d.data(); if(!v.shopId||!v.period||v.shopId==='__diag__') return;
+    const v=d.data(); if(!v.shopId||!v.period||v.shopId==='zzz-diagnostic') return;
     HIST[v.shopId]=HIST[v.shopId]||{};
     const rec={};
     if(v.elec)rec.elec=v.elec;
@@ -612,8 +615,8 @@ async function runDiag(){
   try{ await withTimeout(getDocs(collection(FB.db,'readings')),12000); push(true,'อ่าน Firestore'); }
   catch(e){ push(false,'อ่าน Firestore',e); return out; }
 
-  const ref=doc(FB.db,'readings','__diag__');
-  try{ await withTimeout(setDoc(ref,{shopId:'__diag__',period:'__diag__',t:Date.now()}),12000); push(true,'เขียน Firestore'); }
+  const ref=doc(FB.db,'readings','zzz-diagnostic');
+  try{ await withTimeout(setDoc(ref,{shopId:'zzz-diagnostic',period:'zzz-diagnostic',t:Date.now()}),12000); push(true,'เขียน Firestore'); }
   catch(e){ push(false,'เขียน Firestore',e); return out; }
 
   try{
@@ -624,6 +627,28 @@ async function runDiag(){
   try{ await withTimeout(deleteDoc(ref),12000); push(true,'ลบเอกสารทดสอบ'); }catch(e){ push(false,'ลบเอกสารทดสอบ',e); }
   out.push('โปรเจกต์: '+(FB.cfg&&FB.cfg.projectId));
   return out;
+}
+
+/* บันทึกรายละเอียดร้านอัตโนมัติหลังหยุดพิมพ์ */
+let shopSaveTimer=null;
+function queueShopSave(){
+  const st=$('shopSaveState');
+  if(!(FB.ready&&FB.user)){ st.textContent=''; return; }
+  const sh=S.shop;
+  st.textContent='กำลังบันทึก…'; st.className='autosave';
+  clearTimeout(shopSaveTimer);
+  shopSaveTimer=setTimeout(async()=>{
+    try{
+      await pushShop(sh);
+      if(S.shop!==sh) return;
+      st.textContent='บันทึกแล้ว'; st.className='autosave ok';
+      setTimeout(()=>{ if(st.classList.contains('ok')) st.textContent=''; },2500);
+    }catch(e){
+      if(S.shop!==sh) return;
+      st.textContent='บันทึกไม่สำเร็จ'; st.className='autosave bad';
+      connErr(readableErr(e));
+    }
+  },900);
 }
 
 /* ─────────── ร้าน + มิเตอร์ ─────────── */
@@ -664,6 +689,8 @@ function loadShop(){
   $('flatBox').style.display=sh.flat?'block':'none';
   $('stallPick').style.display=S.type==='foodcourt'?'block':'none';
   $('bfBtn').style.display=sh.meters.length?'block':'none';
+  clearTimeout(shopSaveTimer);
+  $('shopSaveState').textContent='';
   renderMeters(); render();
 }
 
@@ -730,7 +757,7 @@ function renderMeters(){
       const f=inp.dataset.k;
       inp.addEventListener('input',()=>{
         d[f]=Number(inp.value)||0;
-        if(f==='rate') m.rate=d.rate;
+        if(f==='rate'){ m.rate=d.rate; queueShopSave(); }
         refreshMeter(el,d,sh.id,m.k,pprd);   // อัปเดตเฉพาะตัวเลข ไม่สร้าง input ใหม่
         render();
       });
@@ -880,6 +907,9 @@ async function saveBackfill(){
       catch(e){ if(!firstErr) firstErr=e; }
     }
   }
+  if(online){
+    try{ await pushShop(sh); }catch(e){ if(!firstErr) firstErr=e; }
+  }
   if(!online)          flash('bfFlash','ok',`บันทึกในเครื่องแล้ว ${local} งวด (ยังไม่ได้เชื่อม Firebase)`);
   else if(firstErr)    flash('bfFlash','bad',`ขึ้น Firestore ได้ ${sent}/${local} งวด — ${readableErr(firstErr)}`);
   else                 flash('bfFlash','ok',`ยืนยันบน Firestore แล้ว ${sent} งวด`);
@@ -907,10 +937,10 @@ document.querySelectorAll('#stallSeg button').forEach(b=>b.addEventListener('cli
   document.querySelectorAll('#stallSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
   b.setAttribute('aria-pressed','true'); S.stall=+b.dataset.stall; loadShop();
 }));
-$('shopName').addEventListener('input',e=>{S.name=e.target.value;S.shop.name=e.target.value;render();});
-$('rent').addEventListener('input',e=>{S.rent=Number(e.target.value)||0;S.shop.rent=S.rent;render();});
-$('mgmt').addEventListener('input',e=>{S.mgmt=Number(e.target.value)||0;if(S.shop.mgmt)S.shop.mgmt.amount=S.mgmt;render();});
-$('flat').addEventListener('input',e=>{S.flat=Number(e.target.value)||0;if(S.shop.flat)S.shop.flat.amount=S.flat;render();});
+$('shopName').addEventListener('input',e=>{S.name=e.target.value;S.shop.name=e.target.value;render();queueShopSave();});
+$('rent').addEventListener('input',e=>{S.rent=Number(e.target.value)||0;S.shop.rent=S.rent;render();queueShopSave();});
+$('mgmt').addEventListener('input',e=>{S.mgmt=Number(e.target.value)||0;if(S.shop.mgmt)S.shop.mgmt.amount=S.mgmt;render();queueShopSave();});
+$('flat').addEventListener('input',e=>{S.flat=Number(e.target.value)||0;if(S.shop.flat)S.shop.flat.amount=S.flat;render();queueShopSave();});
 $('flatEdit').addEventListener('click',()=>{
   const f=$('flat'); f.readOnly=!f.readOnly;
   $('flatEdit').textContent=f.readOnly?'แก้ยอดเหมา':'ล็อกยอดเหมากลับ';

@@ -47,6 +47,7 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit}
 .conn .err{font-size:11.5px;color:#a03535;margin:8px 0 0;display:none}
 .conn .err.on{display:block}
 .cfghint{font-size:11.5px;color:var(--soft);margin:9px 0 6px;line-height:1.5}
+#diagOut{font-family:var(--f);font-size:11.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:10px 0 0;padding:9px 10px;background:#0f1722;color:#e8edf5;border-radius:6px}
 textarea.mono{font-family:var(--n);font-size:11.5px;line-height:1.5;resize:vertical;min-height:96px}
 
 .step{border-top:1px solid var(--line);padding:16px 0 6px}
@@ -200,8 +201,10 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
     <div id="connLinks" style="margin-top:9px;display:flex;gap:14px;flex-wrap:wrap">
       <button class="linkbtn" id="cfgAgain" style="display:none">เปลี่ยนค่า Firebase</button>
       <button class="linkbtn" id="cfgCopy" style="display:none">คัดลอกโค้ดไปวางในไฟล์</button>
+      <button class="linkbtn" id="diagBtn">ตรวจการเชื่อมต่อ</button>
       <button class="linkbtn" id="logoutBtn" style="display:none">ออกจากระบบ</button>
     </div>
+    <pre id="diagOut" style="display:none"></pre>
     <p class="err" id="connErr"></p>
   </div>
 
@@ -525,13 +528,23 @@ function fbInit(){
 
 function readableErr(e){
   const c=(e&&e.code)||'';
+  let t;
   if(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))
-    return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-  if(c.includes('permission-denied'))
-    return 'ไม่มีสิทธิ์เข้าถึงข้อมูล — ตรวจ Firestore Rules';
-  if(c.includes('too-many-requests')) return 'ลองผิดหลายครั้งเกินไป รอสักครู่';
-  if(c.includes('unavailable')) return 'เชื่อมต่อฐานข้อมูลไม่ได้ ลองใหม่อีกครั้ง';
-  return (e&&e.message)||'เกิดข้อผิดพลาด';
+    t='อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  else if(c.includes('permission-denied'))
+    t='ไม่มีสิทธิ์เขียนข้อมูล — Firestore Rules ยังไม่ได้ตั้ง หรือยังไม่ได้กด Publish';
+  else if(c.includes('too-many-requests')) t='ลองผิดหลายครั้งเกินไป รอสักครู่';
+  else if(c==='app/timeout') t='ต่อ Firestore ไม่ติด — อาจโดน ad-blocker/ไฟร์วอลล์บล็อก หรือยังไม่ได้สร้าง Firestore Database';
+  else if(c.includes('unavailable')) t='เชื่อมต่อฐานข้อมูลไม่ได้ ลองใหม่อีกครั้ง';
+  else if(c.includes('not-found')) t='ไม่พบ Firestore Database ในโปรเจกต์นี้ — ต้องกด Create database ก่อน';
+  else t=(e&&e.message)||'เกิดข้อผิดพลาด';
+  return c?`${t} [${c}]`:t;
+}
+
+/* กันกรณีเขียนแล้วค้างไม่จบ — แปลงเป็น error ที่มองเห็นได้ */
+function withTimeout(p,ms,code){
+  return Promise.race([p,new Promise((_,rej)=>
+    setTimeout(()=>rej(Object.assign(new Error('timeout'),{code:code||'app/timeout'})),ms))]);
 }
 
 async function pullAll(){
@@ -547,38 +560,70 @@ async function pullAll(){
     if(v.flat!=null&&s.flat)s.flat.amount=v.flat;
     if(v.rates)s.meters.forEach(m=>{if(v.rates[m.k]!=null)m.rate=v.rates[m.k];});
   });
-  const rdSnap=await getDocs(collection(FB.db,'readings'));
-  allShops().forEach(s=>HIST[s.id]={});
+  const rdSnap=await withTimeout(getDocs(collection(FB.db,'readings')),12000);
   rdSnap.forEach(d=>{
-    const v=d.data(); if(!v.shopId||!v.period) return;
+    const v=d.data(); if(!v.shopId||!v.period||v.shopId==='__diag__') return;
     HIST[v.shopId]=HIST[v.shopId]||{};
     const rec={};
     if(v.elec)rec.elec=v.elec;
     if(v.water)rec.water=v.water;
-    HIST[v.shopId][v.period]=rec;
+    HIST[v.shopId][v.period]=rec;      // ทับเฉพาะงวดที่มีบน Firestore ไม่ล้างของเดิมทิ้ง
   });
 }
 
 async function pushReading(shopId,period,rec){
-  if(!FB.ready||!FB.user) return false;
-  const {doc,setDoc,serverTimestamp}=FB.fs;
+  if(!FB.ready||!FB.user) throw Object.assign(new Error('ยังไม่ได้เข้าสู่ระบบ'),{code:'app/no-auth'});
+  const {doc,setDoc,getDocFromServer,serverTimestamp}=FB.fs;
+  const ref=doc(FB.db,'readings',`${shopId}_${period}`);
   const body={shopId,period,updatedAt:serverTimestamp()};
   if(rec.elec)body.elec=rec.elec;
   if(rec.water)body.water=rec.water;
-  await setDoc(doc(FB.db,'readings',`${shopId}_${period}`),body,{merge:true});
+  await withTimeout(setDoc(ref,body,{merge:true}),12000);
+  const back=await withTimeout(getDocFromServer(ref),12000);   // อ่านกลับจากเซิร์ฟเวอร์จริง
+  if(!back.exists()) throw Object.assign(new Error('เขียนแล้วอ่านกลับไม่เจอ'),{code:'app/not-persisted'});
   return true;
 }
 
 async function pushShop(sh){
-  if(!FB.ready||!FB.user) return false;
-  const {doc,setDoc}=FB.fs;
+  if(!FB.ready||!FB.user) throw Object.assign(new Error('ยังไม่ได้เข้าสู่ระบบ'),{code:'app/no-auth'});
+  const {doc,setDoc,getDocFromServer}=FB.fs;
+  const ref=doc(FB.db,'shops',sh.id);
   const rates={}; sh.meters.forEach(m=>rates[m.k]=m.rate);
-  await setDoc(doc(FB.db,'shops',sh.id),{
+  await withTimeout(setDoc(ref,{
     name:sh.name, rent:sh.rent, rates,
     mgmt:sh.mgmt?sh.mgmt.amount:null,
     flat:sh.flat?sh.flat.amount:null
-  },{merge:true});
+  },{merge:true}),12000);
+  const back=await withTimeout(getDocFromServer(ref),12000);
+  if(!back.exists()) throw Object.assign(new Error('เขียนแล้วอ่านกลับไม่เจอ'),{code:'app/not-persisted'});
   return true;
+}
+
+/* ตรวจการเชื่อมต่อทีละขั้น เพื่อรู้ว่าติดตรงไหน */
+async function runDiag(){
+  const out=[];
+  const push=(ok,label,err)=>out.push(`${ok?'✅':'❌'} ${label}${err?' — '+readableErr(err):''}`);
+  if(!FB.ready){ push(false,'โหลด Firebase SDK'); return out; }
+  push(true,'โหลด Firebase SDK');
+  if(!FB.user){ push(false,'เข้าสู่ระบบ'); return out; }
+  push(true,'เข้าสู่ระบบ ('+FB.user.email+')');
+
+  const {doc,setDoc,getDocFromServer,deleteDoc,collection,getDocs}=FB.fs;
+  try{ await withTimeout(getDocs(collection(FB.db,'readings')),12000); push(true,'อ่าน Firestore'); }
+  catch(e){ push(false,'อ่าน Firestore',e); return out; }
+
+  const ref=doc(FB.db,'readings','__diag__');
+  try{ await withTimeout(setDoc(ref,{shopId:'__diag__',period:'__diag__',t:Date.now()}),12000); push(true,'เขียน Firestore'); }
+  catch(e){ push(false,'เขียน Firestore',e); return out; }
+
+  try{
+    const s=await withTimeout(getDocFromServer(ref),12000);
+    push(s.exists(),'อ่านกลับจากเซิร์ฟเวอร์');
+  }catch(e){ push(false,'อ่านกลับจากเซิร์ฟเวอร์',e); }
+
+  try{ await withTimeout(deleteDoc(ref),12000); push(true,'ลบเอกสารทดสอบ'); }catch(e){ push(false,'ลบเอกสารทดสอบ',e); }
+  out.push('โปรเจกต์: '+(FB.cfg&&FB.cfg.projectId));
+  return out;
 }
 
 /* ─────────── ร้าน + มิเตอร์ ─────────── */
@@ -820,25 +865,25 @@ function renderBackfill(){
 async function saveBackfill(){
   const sh=S.shop, btn=$('bfSave');
   btn.disabled=true; btn.textContent='กำลังบันทึก…';
-  let n=0, online=FB.ready&&FB.user;
-  try{
-    for(const r of BF.rows){
-      const rec={}; let any=false;
-      sh.meters.forEach(m=>{
-        const v=r.vals[m.k];
-        if(v.prev!==''&&v.curr!==''){ rec[m.k]={prev:Number(v.prev),curr:Number(v.curr)}; any=true; }
-      });
-      if(!any) continue;
-      HIST[sh.id]=HIST[sh.id]||{};
-      HIST[sh.id][r.period]=rec;
-      if(online) await pushReading(sh.id,r.period,rec);
-      n++;
+  const online=FB.ready&&FB.user;
+  let local=0, sent=0, firstErr=null;
+  for(const r of BF.rows){
+    const rec={}; let any=false;
+    sh.meters.forEach(m=>{
+      const v=r.vals[m.k];
+      if(v.prev!==''&&v.curr!==''){ rec[m.k]={prev:Number(v.prev),curr:Number(v.curr)}; any=true; }
+    });
+    if(!any) continue;
+    HIST[sh.id]=HIST[sh.id]||{}; HIST[sh.id][r.period]=rec; local++;
+    if(online){
+      try{ await pushReading(sh.id,r.period,rec); sent++; }
+      catch(e){ if(!firstErr) firstErr=e; }
     }
-    flash('bfFlash','ok',online?`บันทึกขึ้น Firestore แล้ว ${n} งวด`:`บันทึกในเครื่องแล้ว ${n} งวด (ยังไม่ได้เชื่อม Firebase)`);
-    loadShop();
-  }catch(e){
-    flash('bfFlash','bad','บันทึกไม่สำเร็จ — '+readableErr(e));
   }
+  if(!online)          flash('bfFlash','ok',`บันทึกในเครื่องแล้ว ${local} งวด (ยังไม่ได้เชื่อม Firebase)`);
+  else if(firstErr)    flash('bfFlash','bad',`ขึ้น Firestore ได้ ${sent}/${local} งวด — ${readableErr(firstErr)}`);
+  else                 flash('bfFlash','ok',`ยืนยันบน Firestore แล้ว ${sent} งวด`);
+  loadShop();
   btn.disabled=false; btn.textContent='บันทึกทั้งหมด';
 }
 
@@ -922,17 +967,35 @@ $('bfScrim').addEventListener('click',e=>{if(e.target===$('bfScrim'))$('bfScrim'
 $('save').addEventListener('click',async()=>{
   const sh=S.shop, btn=$('save');
   const um=utilMonth(), period=pk(um.y,um.m);
+  const online=FB.ready&&FB.user;
   btn.disabled=true; btn.textContent='กำลังบันทึก…';
-  try{
-    if(sh.meters.length){
-      const rec={}; sh.meters.forEach(m=>{const d=S.draft[m.k];rec[m.k]={prev:d.prev,curr:d.curr};});
-      HIST[sh.id]=HIST[sh.id]||{}; HIST[sh.id][period]=rec;
-      if(FB.ready&&FB.user) await pushReading(sh.id,period,rec);
+  let rec=null;
+  if(sh.meters.length){
+    rec={}; sh.meters.forEach(m=>{const d=S.draft[m.k];rec[m.k]={prev:d.prev,curr:d.curr};});
+    HIST[sh.id]=HIST[sh.id]||{}; HIST[sh.id][period]=rec;
+  }
+  if(!online){
+    flash('flashMsg','ok','บันทึกในเครื่องแล้ว (ยังไม่ได้เชื่อม Firebase)');
+  }else{
+    try{
+      if(rec) await pushReading(sh.id,period,rec);
+      await pushShop(sh);
+      flash('flashMsg','ok','ยืนยันบน Firestore แล้ว');
+    }catch(e){
+      flash('flashMsg','bad','ขึ้น Firestore ไม่สำเร็จ — '+readableErr(e));
     }
-    if(FB.ready&&FB.user) await pushShop(sh);
-    flash('flashMsg','ok',(FB.ready&&FB.user)?'บันทึกขึ้น Firestore แล้ว':'บันทึกในเครื่องแล้ว (ยังไม่ได้เชื่อม Firebase)');
-  }catch(e){ flash('flashMsg','bad','บันทึกไม่สำเร็จ — '+readableErr(e)); }
+  }
   btn.disabled=false; btn.textContent='บันทึกงวดนี้';
+});
+
+$('diagBtn').addEventListener('click',async()=>{
+  const b=$('diagBtn'), box=$('diagOut');
+  b.disabled=true; b.textContent='กำลังตรวจ…';
+  box.textContent='';
+  const lines=await runDiag();
+  box.textContent=lines.join('\n');
+  box.style.display='block';
+  b.disabled=false; b.textContent='ตรวจการเชื่อมต่อ';
 });
 
 function flash(id,kind,t){

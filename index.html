@@ -46,6 +46,8 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit}
 .conn form{margin-top:10px;display:grid;gap:7px}
 .conn .err{font-size:11.5px;color:#a03535;margin:8px 0 0;display:none}
 .conn .err.on{display:block}
+.cfghint{font-size:11.5px;color:var(--soft);margin:9px 0 6px;line-height:1.5}
+textarea.mono{font-family:var(--n);font-size:11.5px;line-height:1.5;resize:vertical;min-height:96px}
 
 .step{border-top:1px solid var(--line);padding:16px 0 6px}
 .step > h2{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);margin:0 0 13px}
@@ -178,6 +180,15 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
       <b id="connText">โหมดออฟไลน์</b>
       <span class="who" id="connWho"></span>
     </div>
+
+    <div id="cfgBox">
+      <p class="cfghint">วางค่า config ที่ก๊อปมาจาก Firebase Console แล้วกดเชื่อมต่อ</p>
+      <textarea class="ctl mono" id="cfgText" rows="6" spellcheck="false"
+        placeholder='const firebaseConfig = {&#10;  apiKey: "AIza...",&#10;  authDomain: "xxx.firebaseapp.com",&#10;  projectId: "xxx",&#10;  ...&#10;};'></textarea>
+      <button class="btn sm" id="cfgBtn" style="margin-top:7px;width:100%">เชื่อมต่อ Firebase</button>
+      <p class="cfghint">วางมาทั้งก้อนได้เลย ระบบดึงเฉพาะค่าที่ต้องใช้</p>
+    </div>
+
     <div id="loginBox" style="display:none">
       <div style="margin-top:10px;display:grid;gap:7px">
         <input class="ctl" id="email" type="email" placeholder="อีเมล" autocomplete="username">
@@ -185,7 +196,12 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
         <button class="btn sm" id="loginBtn">เข้าสู่ระบบ</button>
       </div>
     </div>
-    <button class="linkbtn" id="logoutBtn" style="display:none;margin-top:9px">ออกจากระบบ</button>
+
+    <div id="connLinks" style="margin-top:9px;display:flex;gap:14px;flex-wrap:wrap">
+      <button class="linkbtn" id="cfgAgain" style="display:none">เปลี่ยนค่า Firebase</button>
+      <button class="linkbtn" id="cfgCopy" style="display:none">คัดลอกโค้ดไปวางในไฟล์</button>
+      <button class="linkbtn" id="logoutBtn" style="display:none">ออกจากระบบ</button>
+    </div>
     <p class="err" id="connErr"></p>
   </div>
 
@@ -336,13 +352,13 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
    ตั้งค่า FIREBASE — วางค่าจาก Firebase Console ตรงนี้
    ถ้าเว้นว่างไว้ แอปจะทำงานแบบออฟไลน์ (ข้อมูลหายเมื่อรีเฟรช)
    ═══════════════════════════════════════════════════════════ */
-const firebaseConfig = {
-  apiKey: "AIzaSyAl9vKVFeE31elKc_o4CFTgyH9HX9KrfWM",
-  authDomain: "csk-reciept.firebaseapp.com",
-  projectId: "csk-reciept",
-  storageBucket: "csk-reciept.firebasestorage.app",
-  messagingSenderId: "849600567024",
-  appId: "1:849600567024:web:400fa30a292bf907e19435"
+const FB_CONFIG = {
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
 };
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.0/';
 
@@ -430,7 +446,7 @@ function drawQR(cv,txt){if(typeof qrcode==='undefined')return false;
  return true;}catch(e){return false;}}
 
 /* ═══════════ FIRESTORE ═══════════ */
-const FB={ready:false,user:null,db:null,auth:null,fs:null,am:null};
+const FB={ready:false,user:null,db:null,auth:null,fs:null,am:null,cfg:null};
 
 function setConn(state,text,who){
   const d=$('dot'); d.className='dot'+(state==='on'?' on':state==='busy'?' busy':'');
@@ -438,12 +454,30 @@ function setConn(state,text,who){
   $('connWho').textContent=who||'';
 }
 function connErr(t){const e=$('connErr');e.textContent=t||'';e.classList.toggle('on',!!t);}
+function show(id,on){$(id).style.display=on?(id==='cfgBox'||id==='loginBox'?'block':'inline'):'none';}
 
-async function fbInit(){
-  if(!FB_CONFIG.projectId){
-    setConn('off','โหมดออฟไลน์','ยังไม่ได้ตั้งค่า Firebase');
-    return;
+/* ดึงค่าจากข้อความที่วางมา — รับได้ทั้งโค้ด JS เต็มๆ และ JSON ล้วน */
+const CFG_KEYS=['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+function parseConfig(text){
+  const out={};
+  CFG_KEYS.concat('measurementId').forEach(k=>{
+    const m=text.match(new RegExp('["\']?'+k+'["\']?\\s*[:=]\\s*["\']([^"\']+)["\']'));
+    if(m) out[k]=m[1];
+  });
+  if(!out.projectId){
+    try{ const j=JSON.parse(text);
+      CFG_KEYS.forEach(k=>{ if(j[k]) out[k]=j[k]; });
+    }catch(e){}
   }
+  return out;
+}
+
+async function fbConnect(cfg){
+  if(!cfg||!cfg.projectId||!cfg.apiKey||!cfg.appId){
+    connErr('ค่า config ไม่ครบ — ต้องมีอย่างน้อย apiKey, projectId และ appId');
+    return false;
+  }
+  connErr('');
   setConn('busy','กำลังเชื่อมต่อ…');
   try{
     const [appMod,authMod,fsMod]=await Promise.all([
@@ -451,27 +485,41 @@ async function fbInit(){
       import(SDK+'firebase-auth.js'),
       import(SDK+'firebase-firestore.js')
     ]);
-    const app=appMod.initializeApp(FB_CONFIG);
+    const app=appMod.initializeApp(cfg);
     FB.auth=authMod.getAuth(app); FB.db=fsMod.getFirestore(app);
-    FB.am=authMod; FB.fs=fsMod; FB.ready=true;
+    FB.am=authMod; FB.fs=fsMod; FB.ready=true; FB.cfg=cfg;
+    show('cfgBox',false); show('cfgAgain',true); show('cfgCopy',true);
     authMod.onAuthStateChanged(FB.auth,async u=>{
       FB.user=u;
       if(u){
-        $('loginBox').style.display='none';
-        $('logoutBtn').style.display='inline';
+        show('loginBox',false); show('logoutBtn',true);
         setConn('busy','กำลังโหลดข้อมูล…',u.email);
         try{ await pullAll(); setConn('on','เชื่อมต่อแล้ว',u.email); }
         catch(e){ setConn('off','โหลดข้อมูลไม่สำเร็จ',u.email); connErr(readableErr(e)); }
         loadShop();
       }else{
-        $('loginBox').style.display='block';
-        $('logoutBtn').style.display='none';
+        show('loginBox',true); show('logoutBtn',false);
         setConn('off','ยังไม่ได้เข้าสู่ระบบ');
       }
     });
+    return true;
   }catch(e){
-    setConn('off','เชื่อมต่อ Firebase ไม่สำเร็จ');
-    connErr('โหลด SDK ไม่ได้ — ตรวจว่าเปิดผ่าน https (GitHub Pages) ไม่ใช่เปิดไฟล์ตรงๆ');
+    FB.ready=false;
+    setConn('off','เชื่อมต่อไม่สำเร็จ');
+    connErr(location.protocol==='file:'
+      ? 'เปิดไฟล์ตรงๆ (file://) ใช้ไม่ได้ — ต้องเปิดผ่าน GitHub Pages หรือ localhost'
+      : 'โหลด Firebase SDK ไม่ได้ — หน้าตัวอย่างในแชตอาจบล็อกไว้ ลองอัปขึ้น GitHub Pages แล้วเปิดจากที่นั่น');
+    return false;
+  }
+}
+
+function fbInit(){
+  if(FB_CONFIG.projectId){                 // ฝังไว้ในไฟล์แล้ว → ต่อเลย
+    show('cfgBox',false);
+    fbConnect(FB_CONFIG);
+  }else{
+    setConn('off','ยังไม่ได้เชื่อมต่อ','ทำงานแบบออฟไลน์');
+    show('cfgBox',true);
   }
 }
 
@@ -783,6 +831,30 @@ $('ppId').addEventListener('input',e=>{S.pp=e.target.value;render();});
 $('logoFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader(); r.onload=()=>{S.logo=r.result;render();}; r.readAsDataURL(f);
+});
+
+$('cfgBtn').addEventListener('click',async()=>{
+  const b=$('cfgBtn'), cfg=parseConfig($('cfgText').value);
+  b.disabled=true; b.textContent='กำลังเชื่อมต่อ…';
+  await fbConnect(cfg);
+  b.disabled=false; b.textContent='เชื่อมต่อ Firebase';
+});
+$('cfgAgain').addEventListener('click',()=>{
+  show('cfgBox',true); show('loginBox',false);
+  connErr(''); $('cfgText').focus();
+});
+$('cfgCopy').addEventListener('click',async()=>{
+  if(!FB.cfg) return;
+  const w=Math.max(...CFG_KEYS.map(k=>k.length));
+  const body=CFG_KEYS.map(k=>`  ${(k+':').padEnd(w+1)} "${FB.cfg[k]||''}"`).join(',\n');
+  const snippet=`const FB_CONFIG = {\n${body}\n};`;
+  try{
+    await navigator.clipboard.writeText(snippet);
+    flash('flashMsg','ok','คัดลอกแล้ว — เอาไปวางทับ FB_CONFIG ในไฟล์ จะได้ไม่ต้องกรอกใหม่ทุกครั้ง');
+  }catch(e){
+    $('cfgText').value=snippet; show('cfgBox',true);
+    flash('flashMsg','ok','คัดลอกอัตโนมัติไม่ได้ — โค้ดอยู่ในช่องด้านบน ก๊อปเองได้เลย');
+  }
 });
 
 $('loginBtn').addEventListener('click',async()=>{

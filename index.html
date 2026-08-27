@@ -622,49 +622,77 @@ function loadShop(){
   renderMeters(); render();
 }
 
+function refreshMeter(el,d,shopId,mk,pprd){
+  const u=d.curr-d.prev;
+  const prevU=unitsAt(shopId,pprd,mk);
+  const spike=prevU!==null&&prevU>0&&u>prevU*3;
+  const bad=u<0, blank=u===0;
+  const strip=el.querySelector('.strip');
+  strip.classList.toggle('warn',bad||spike);
+  const v=strip.querySelectorAll('.val');
+  v[0].textContent=d.prev; v[1].textContent=d.curr; v[2].textContent=u;
+  const msg=el.querySelectorAll('.msg');
+  msg[0].classList.toggle('on',bad);
+  msg[1].textContent=`ใช้ไป ${u} หน่วย มากกว่างวดก่อน (${prevU}) เกิน 3 เท่า — ลองทวนเลขอีกครั้ง`;
+  msg[1].classList.toggle('on',spike);
+  msg[2].classList.toggle('on',blank&&!bad);
+}
+
 function renderMeters(){
   const box=$('meters'); box.innerHTML='';
   const sh=S.shop; if(!sh.meters.length) return;
-  const um=utilMonth(), period=pk(um.y,um.m);
+  const um=utilMonth();
   const p=prevOf(um.y,um.m), pprd=pk(p.y,p.m);
 
   sh.meters.forEach(m=>{
-    const d=S.draft[m.k], u=d.curr-d.prev;
-    const prevU=unitsAt(sh.id,pprd,m.k);
-    const spike=prevU!==null&&prevU>0&&u>prevU*3;
-    const bad=u<0, blank=u===0;
+    const d=S.draft[m.k];
     const el=document.createElement('div');
     el.className='meter';
     el.innerHTML=`
       <h3>${m.label}<span>ประจำเดือน ${MONTHS[um.m]}</span></h3>
       <div class="mrow">
         <div class="field" style="margin:0"><label>เลขเก่า</label>
-          <input class="ctl num" data-k="prev" type="number" value="${d.prev}" ${d.locked?'readonly':''}></div>
+          <input class="ctl num" data-k="prev" type="number" inputmode="numeric" value="${d.prev}" ${d.locked?'readonly':''}></div>
         <div class="field" style="margin:0"><label>เลขใหม่</label>
-          <input class="ctl num" data-k="curr" type="number" value="${d.curr}"></div>
+          <input class="ctl num" data-k="curr" type="number" inputmode="numeric" value="${d.curr}"></div>
         <div class="field" style="margin:0"><label>บาท/หน่วย</label>
-          <input class="ctl num" data-k="rate" type="number" step="0.01" value="${d.rate}"></div>
+          <input class="ctl num" data-k="rate" type="number" inputmode="decimal" step="0.01" value="${d.rate}"></div>
       </div>
-      <div class="strip ${bad||spike?'warn':''}">
-        <div><span class="cap">เลขเก่า</span><span class="val">${d.prev}</span></div>
+      <div class="strip">
+        <div><span class="cap">เลขเก่า</span><span class="val"></span></div>
         <div class="ar">&rarr;</div>
-        <div><span class="cap">เลขใหม่</span><span class="val">${d.curr}</span></div>
-        <div class="d"><span class="cap">ใช้ไป</span><span class="val">${u}</span><span class="u">หน่วย</span></div>
+        <div><span class="cap">เลขใหม่</span><span class="val"></span></div>
+        <div class="d"><span class="cap">ใช้ไป</span><span class="val"></span><span class="u">หน่วย</span></div>
       </div>
-      <p class="msg warn ${bad?'on':''}">เลขใหม่น้อยกว่าเลขเก่า — มิเตอร์วนรอบ หรือกรอกสลับกัน</p>
-      <p class="msg warn ${spike?'on':''}">ใช้ไป ${u} หน่วย มากกว่างวดก่อน (${prevU}) เกิน 3 เท่า — ลองทวนเลขอีกครั้ง</p>
-      <p class="msg info ${blank&&!bad?'on':''}">ยังไม่ได้กรอกเลขใหม่</p>
-      <p style="margin:8px 0 0"><button class="linkbtn" data-k="unlock">${d.locked?'เปลี่ยนมิเตอร์ / แก้เลขเก่า':'ล็อกเลขเก่ากลับ'}</button></p>`;
-    el.querySelectorAll('[data-k]').forEach(inp=>{
+      <p class="msg warn">เลขใหม่น้อยกว่าเลขเก่า — มิเตอร์วนรอบ หรือกรอกสลับกัน</p>
+      <p class="msg warn"></p>
+      <p class="msg info">ยังไม่ได้กรอกเลขใหม่</p>
+      <p style="margin:8px 0 0"><button class="linkbtn" data-k="unlock"></button></p>`;
+
+    const unlockBtn=el.querySelector('[data-k="unlock"]');
+    const prevInp=el.querySelector('[data-k="prev"]');
+    const setLock=()=>{
+      prevInp.readOnly=d.locked;
+      unlockBtn.textContent=d.locked?'เปลี่ยนมิเตอร์ / แก้เลขเก่า':'ล็อกเลขเก่ากลับ';
+    };
+    setLock();
+    unlockBtn.addEventListener('click',()=>{
+      d.locked=!d.locked; setLock();
+      if(!d.locked) prevInp.focus();
+    });
+
+    el.querySelectorAll('input[data-k]').forEach(inp=>{
       const f=inp.dataset.k;
-      if(f==='unlock'){inp.addEventListener('click',()=>{d.locked=!d.locked;renderMeters();});return;}
       inp.addEventListener('input',()=>{
         d[f]=Number(inp.value)||0;
-        if(f==='rate'){m.rate=d.rate;render();}
-        else{renderMeters();render();}
+        if(f==='rate') m.rate=d.rate;
+        refreshMeter(el,d,sh.id,m.k,pprd);   // อัปเดตเฉพาะตัวเลข ไม่สร้าง input ใหม่
+        render();
       });
     });
+
     box.appendChild(el);
+    refreshMeter(el,d,sh.id,m.k,pprd);
   });
 }
 
@@ -731,13 +759,25 @@ function openBackfill(){
     const row={period,label:`${MONTHS[m]} ${y+543}`,vals:{}};
     sh.meters.forEach(mt=>{
       const r=rec[mt.k];
-      row.vals[mt.k]={prev:r?r.prev:'',curr:r?r.curr:''};
+      row.vals[mt.k]={prev:r?r.prev:'',curr:r?r.curr:'',touched:!!r};
     });
     BF.rows.push(row);
   }
   $('bfSub').textContent=`${sh.name} — กรอกได้ทั้ง 3 งวด แล้วกดบันทึกทีเดียว`;
   renderBackfill();
   $('bfScrim').classList.add('on');
+}
+
+function refreshBfUnits(){
+  const sh=S.shop;
+  BF.rows.forEach((r,ri)=>{
+    sh.meters.forEach(m=>{
+      const v=r.vals[m.k];
+      const u=(v.prev!==''&&v.curr!=='')?(Number(v.curr)-Number(v.prev)):null;
+      const cell=$('bfTable').querySelector(`td.u[data-r="${ri}"][data-k="${m.k}"]`);
+      if(cell){ cell.textContent=u===null?'—':u; cell.classList.toggle('bad',u!==null&&u<0); }
+    });
+  });
 }
 
 function renderBackfill(){
@@ -749,10 +789,9 @@ function renderBackfill(){
     html+=`<tr><td class="m">${r.label}</td>`;
     sh.meters.forEach(m=>{
       const v=r.vals[m.k];
-      const u=(v.prev!==''&&v.curr!=='')?(Number(v.curr)-Number(v.prev)):null;
-      html+=`<td><input type="number" data-r="${ri}" data-k="${m.k}" data-f="prev" value="${v.prev}"></td>
-             <td><input type="number" data-r="${ri}" data-k="${m.k}" data-f="curr" value="${v.curr}"></td>
-             <td class="u ${u!==null&&u<0?'bad':''}">${u===null?'—':u}</td>`;
+      html+=`<td><input type="number" inputmode="numeric" data-r="${ri}" data-k="${m.k}" data-f="prev" value="${v.prev}"></td>
+             <td><input type="number" inputmode="numeric" data-r="${ri}" data-k="${m.k}" data-f="curr" value="${v.curr}"></td>
+             <td class="u" data-r="${ri}" data-k="${m.k}">—</td>`;
     });
     html+='</tr>';
   });
@@ -761,13 +800,21 @@ function renderBackfill(){
   $('bfTable').querySelectorAll('input').forEach(inp=>{
     inp.addEventListener('input',()=>{
       const ri=+inp.dataset.r, k=inp.dataset.k, f=inp.dataset.f;
-      BF.rows[ri].vals[k][f]=inp.value;
-      if(f==='curr'&&BF.rows[ri+1]&&BF.rows[ri+1].vals[k].prev===''){
-        BF.rows[ri+1].vals[k].prev=inp.value;      // ต่อยอดให้เดือนถัดไป
+      const row=BF.rows[ri];
+      row.vals[k][f]=inp.value;
+      if(f==='prev') row.vals[k].touched=true;      // กรอกเลขเก่าเองแล้ว อย่าไปทับ
+      if(f==='curr'){
+        const next=BF.rows[ri+1];
+        if(next&&!next.vals[k].touched){
+          next.vals[k].prev=inp.value;
+          const nx=$('bfTable').querySelector(`input[data-r="${ri+1}"][data-k="${k}"][data-f="prev"]`);
+          if(nx) nx.value=inp.value;               // เติมค่า ไม่สร้าง input ใหม่
+        }
       }
-      renderBackfill();
+      refreshBfUnits();
     });
   });
+  refreshBfUnits();
 }
 
 async function saveBackfill(){

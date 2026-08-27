@@ -12,7 +12,7 @@
   --ink:#1b2430; --soft:#5a6572; --rule:#3e5ba6; --block:#4472c4;
   --desk:#e4e7ec; --panel:#fff; --line:#d3d8e0;
   --warn:#a8611a; --warn-bg:#fdf3e4; --warn-edge:#e6c99a;
-  --ok:#1f7a4d;
+  --ok:#1f7a4d; --ok-bg:#e9f5ee; --off:#8a8f98;
   --f:'Sarabun','Leelawadee UI',Tahoma,'Noto Sans Thai',sans-serif;
   --n:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 }
@@ -31,18 +31,25 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit}
   .stage{width:100%;padding:16px 10px 48px}
 }
 
-.brand{display:flex;align-items:baseline;gap:9px;margin:0 0 18px}
+.brand{display:flex;align-items:baseline;gap:9px;margin:0 0 14px}
 .brand h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em}
 .brand span{font-size:12px;color:var(--soft)}
 
-/* ---- steps ---- */
+/* ---- connection bar ---- */
+.conn{border:1px solid var(--line);border-radius:8px;padding:11px 12px;margin-bottom:18px;background:#fbfcfd}
+.conn .head{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--off);flex:none}
+.dot.on{background:var(--ok)}
+.dot.busy{background:#c9962c}
+.conn .head b{font-weight:600}
+.conn .head .who{margin-left:auto;font-size:11.5px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.conn form{margin-top:10px;display:grid;gap:7px}
+.conn .err{font-size:11.5px;color:#a03535;margin:8px 0 0;display:none}
+.conn .err.on{display:block}
+
 .step{border-top:1px solid var(--line);padding:16px 0 6px}
-.step:first-of-type{border-top:none;padding-top:0}
 .step > h2{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);margin:0 0 13px}
-.step > h2 b{
-  flex:none;width:21px;height:21px;border-radius:50%;background:var(--rule);color:#fff;
-  display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:0;
-}
+.step > h2 b{flex:none;width:21px;height:21px;border-radius:50%;background:var(--rule);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:0}
 .field{margin-bottom:11px}
 .field > label{display:block;font-size:12.5px;color:var(--soft);margin-bottom:4px}
 .ctl{width:100%;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:5px}
@@ -53,31 +60,22 @@ select.ctl{appearance:none;background-image:linear-gradient(45deg,transparent 50
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .row2 .field{margin-bottom:0}
 
-/* month → utility month derivation */
 .derive{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:6px;background:#f2f5fb;font-size:12.5px;color:var(--soft)}
 .derive b{color:var(--rule);font-weight:600}
 .derive .ar{opacity:.45}
 
-/* segmented pickers */
 .seg{display:grid;gap:7px;grid-template-columns:1fr}
 .seg.three{grid-template-columns:1fr 1fr 1fr}
-.seg button{
-  padding:10px 8px;border:1px solid var(--line);background:#fff;border-radius:6px;
-  cursor:pointer;font-size:13.5px;text-align:center;line-height:1.35;
-}
+.seg button{padding:10px 8px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:13.5px;text-align:center;line-height:1.35}
 .seg button:hover{border-color:var(--rule)}
 .seg button[aria-pressed="true"]{background:var(--rule);border-color:var(--rule);color:#fff;font-weight:600}
 .seg button small{display:block;font-size:11px;opacity:.7;margin-top:1px}
 
-/* meter block */
 .meter{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:11px;background:#fbfcfd}
 .meter > h3{font-size:13.5px;font-weight:600;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
 .meter > h3 span{font-size:11.5px;font-weight:400;color:var(--soft)}
 .mrow{display:grid;grid-template-columns:1fr 1fr 88px;gap:8px}
-.strip{
-  display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:10px;
-  margin-top:11px;padding:10px 12px;border-radius:6px;background:#0f1722;color:#e8edf5;
-}
+.strip{display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:10px;margin-top:11px;padding:10px 12px;border-radius:6px;background:#0f1722;color:#e8edf5}
 .strip.warn{background:var(--warn-bg);color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn-edge)}
 .strip .cap{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;opacity:.55;margin-bottom:1px}
 .strip .val{font-family:var(--n);font-size:17px;font-weight:600;letter-spacing:-.02em}
@@ -95,25 +93,45 @@ select.ctl{appearance:none;background-image:linear-gradient(45deg,transparent 50
 .toggles label{display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:8px;cursor:pointer}
 .toggles input{width:16px;height:16px;accent-color:var(--rule);margin:0}
 
-.acts{display:flex;gap:9px;margin-top:8px}
+.acts{display:flex;gap:9px;margin-top:9px}
 .btn{flex:1;padding:11px;border-radius:6px;border:1px solid var(--rule);background:var(--rule);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
 .btn:hover{background:#334c8e}
 .btn.ghost{background:#fff;color:var(--rule)}
 .btn.ghost:hover{background:#eef1f9}
+.btn.sm{padding:8px;font-size:13px}
 .btn:disabled{opacity:.5;cursor:default}
-.saved{font-size:12px;color:var(--ok);margin-top:9px;display:none}
-.saved.on{display:block}
+.flash{font-size:12px;margin-top:9px;display:none;padding:7px 9px;border-radius:5px}
+.flash.on{display:block}
+.flash.ok{color:var(--ok);background:var(--ok-bg)}
+.flash.bad{color:#a03535;background:#fbecec}
+
+/* ---- backfill modal ---- */
+.scrim{position:fixed;inset:0;background:rgba(15,23,34,.55);display:none;z-index:50;padding:24px 14px;overflow:auto}
+.scrim.on{display:block}
+.modal{max-width:640px;margin:0 auto;background:#fff;border-radius:10px;padding:22px}
+.modal h2{margin:0 0 5px;font-size:18px}
+.modal p.sub{margin:0 0 18px;font-size:13px;color:var(--soft);line-height:1.6}
+table.bf{width:100%;border-collapse:collapse;font-size:13.5px}
+table.bf th,table.bf td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--line)}
+table.bf th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:700}
+table.bf td.m{white-space:nowrap;font-weight:500}
+table.bf input{width:100%;padding:6px 7px;border:1px solid var(--line);border-radius:4px;font-family:var(--n);font-variant-numeric:tabular-nums}
+table.bf td.u{font-family:var(--n);color:var(--soft);white-space:nowrap;text-align:right}
+table.bf td.u.bad{color:var(--warn);font-weight:600}
+.bfnote{font-size:12px;color:var(--soft);margin:14px 0 0;line-height:1.6}
 
 /* ---- paper ---- */
 .scaler{width:100%;display:flex;justify-content:center}
 .paper{width:820px;height:1160px;background:#fff;box-shadow:0 1px 2px rgba(20,30,50,.12),0 14px 40px rgba(20,30,50,.14);transform-origin:top center;flex:none;padding:44px 40px}
 .sheet{border:1px solid #2c3b57;height:100%;padding:32px 40px 26px;position:relative;display:flex;flex-direction:column}
-.doc-title{text-align:right;font-size:14px;font-weight:600;margin-bottom:24px;flex:none}
+.topright{text-align:right;margin-bottom:24px;flex:none}
+.doc-title{font-size:14px;font-weight:600;margin:0}
+.docmeta{font-size:12.5px;line-height:1.6;margin-top:3px;color:#333}
+.docmeta:empty{display:none}
 .letterhead{display:flex;align-items:center;gap:16px;padding-left:46px;margin-bottom:30px;flex:none}
 .logo{width:62px;height:70px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .logo img{max-width:100%;max-height:100%;object-fit:contain}
 .company{font-size:30px;font-weight:700}
-.docmeta{position:absolute;top:32px;right:40px;text-align:right;font-size:12.5px;line-height:1.6}
 
 .tablewrap{flex:1 1 auto;min-height:0;display:flex}
 table.items{width:100%;height:100%;border-collapse:collapse;table-layout:fixed}
@@ -145,7 +163,7 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
 .qr .cap{font-size:11px;line-height:1.4}
 
 .hint{font-size:12px;color:var(--soft);text-align:center;max-width:660px;line-height:1.6}
-@media print{.side,.hint{display:none}body{background:#fff}.paper{box-shadow:none;transform:none!important}}
+@media print{.side,.hint,.scrim{display:none!important}body{background:#fff}.paper{box-shadow:none;transform:none!important}}
 </style>
 </head>
 <body>
@@ -154,13 +172,30 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
 <aside class="side">
   <div class="brand"><h1>ใบเสร็จค่าเช่า</h1><span>บริษัท โชคสุขุม จำกัด</span></div>
 
-  <section class="step">
+  <div class="conn">
+    <div class="head">
+      <span class="dot" id="dot"></span>
+      <b id="connText">โหมดออฟไลน์</b>
+      <span class="who" id="connWho"></span>
+    </div>
+    <div id="loginBox" style="display:none">
+      <div style="margin-top:10px;display:grid;gap:7px">
+        <input class="ctl" id="email" type="email" placeholder="อีเมล" autocomplete="username">
+        <input class="ctl" id="pass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
+        <button class="btn sm" id="loginBtn">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+    <button class="linkbtn" id="logoutBtn" style="display:none;margin-top:9px">ออกจากระบบ</button>
+    <p class="err" id="connErr"></p>
+  </div>
+
+  <section class="step" style="border-top:none;padding-top:0">
     <h2><b>1</b> เลือกเดือน</h2>
     <select class="ctl" id="period"></select>
     <div class="derive">
       <span>ค่าเช่า <b id="dRent">—</b></span>
       <span class="ar">·</span>
-      <span>ค่าน้ำค่าไฟ <b id="dUtil">—</b></span>
+      <span>น้ำ/ไฟ/ส่วนกลาง <b id="dUtil">—</b></span>
     </div>
   </section>
 
@@ -191,6 +226,10 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
       <label for="rent">ค่าบริการสถานที่ (บาท)</label>
       <input class="ctl num" id="rent" type="number" step="0.01">
     </div>
+    <div class="field" id="mgmtBox" style="display:none">
+      <label for="mgmt">ค่าบริหารส่วนกลาง (บาท)</label>
+      <input class="ctl num" id="mgmt" type="number" step="0.01">
+    </div>
     <div id="meters"></div>
     <div id="flatBox" style="display:none">
       <div class="field">
@@ -198,6 +237,9 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
         <input class="ctl num" id="flat" type="number" step="0.01" readonly>
       </div>
       <button class="linkbtn" id="flatEdit">แก้ยอดเหมา</button>
+    </div>
+    <div class="acts">
+      <button class="btn ghost sm" id="bfBtn">กรอกข้อมูลย้อนหลัง</button>
     </div>
   </section>
 
@@ -221,17 +263,19 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
     <button class="btn ghost" id="pr">พิมพ์</button>
   </div>
   <div class="acts">
-    <button class="btn ghost" id="save">บันทึกเลขมิเตอร์งวดนี้</button>
+    <button class="btn ghost" id="save">บันทึกงวดนี้</button>
   </div>
-  <p class="saved" id="savedMsg"></p>
+  <p class="flash" id="flashMsg"></p>
 </aside>
 
 <main class="stage">
   <div class="scaler">
     <div class="paper" id="paper">
       <div class="sheet">
-        <div class="doc-title">ใบเสร็จรับเงิน <span id="rcShop"></span></div>
-        <div class="docmeta" id="docmeta"></div>
+        <div class="topright">
+          <div class="doc-title">ใบเสร็จรับเงิน <span id="rcShop"></span></div>
+          <div class="docmeta" id="docmeta"></div>
+        </div>
         <div class="letterhead">
           <div class="logo" id="logoBox"></div>
           <div class="company">บริษัท โชคสุขุม จำกัด</div>
@@ -270,17 +314,44 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
 </main>
 </div>
 
+<!-- backfill -->
+<div class="scrim" id="bfScrim">
+  <div class="modal">
+    <h2>กรอกข้อมูลย้อนหลัง</h2>
+    <p class="sub" id="bfSub"></p>
+    <div id="bfTable"></div>
+    <p class="bfnote">กรอกเลขปิดมิเตอร์ของแต่ละเดือน — ช่อง "เลขเก่า" ของเดือนถัดไปจะเติมให้เองเมื่อพิมพ์เลขใหม่ของเดือนก่อนหน้าเสร็จ</p>
+    <div class="acts">
+      <button class="btn" id="bfSave">บันทึกทั้งหมด</button>
+      <button class="btn ghost" id="bfClose">ปิด</button>
+    </div>
+    <p class="flash" id="bfFlash"></p>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
-const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+/* ═══════════════════════════════════════════════════════════
+   ตั้งค่า FIREBASE — วางค่าจาก Firebase Console ตรงนี้
+   ถ้าเว้นว่างไว้ แอปจะทำงานแบบออฟไลน์ (ข้อมูลหายเมื่อรีเฟรช)
+   ═══════════════════════════════════════════════════════════ */
+const FB_CONFIG = {
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
+};
+const SDK = 'https://www.gstatic.com/firebasejs/10.12.0/';
 
+/* ─────────── ข้อมูลพื้นฐาน ─────────── */
+const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const PAYEE={
   company :{name:'บริษัท โชคสุขุม จำกัด',bank:'กรุงเทพ',acct:'354-0-77291-4'},
   personal:{name:'นายชัยยพัฒน วินิจวุฒิวงศ์',bank:'TTB',acct:'532-2-37005-6'}
 };
-
-/* ร้านทั้งหมด — ค่าตั้งต้นจากใบเสร็จจริง */
 const SHOPS={
   pharmacy:{id:'pharmacy',code:'PHA',name:'ร้านขายยา',rent:15000,payee:'company',
             meters:[{k:'elec',label:'ค่าไฟฟ้า',rate:5}]},
@@ -288,44 +359,44 @@ const SHOPS={
             meters:[],flat:{label:'ค่าสาธารณูปโภค',amount:500}},
   stalls:[
     {id:'fc1',code:'FC1',name:'ร้าน 1',rent:5000,payee:'personal',
+     mgmt:{label:'ค่าบริหารส่วนกลาง',amount:500},
      meters:[{k:'elec',label:'ค่าไฟฟ้า',rate:6},{k:'water',label:'ค่าน้ำประปา',rate:12}]},
     {id:'fc2',code:'FC2',name:'ร้านราดหน้า',rent:5000,payee:'personal',
+     mgmt:{label:'ค่าบริหารส่วนกลาง',amount:500},
      meters:[{k:'elec',label:'ค่าไฟฟ้า',rate:6},{k:'water',label:'ค่าน้ำประปา',rate:12}]},
     {id:'fc3',code:'FC3',name:'ร้าน 3',rent:5000,payee:'personal',
+     mgmt:{label:'ค่าบริหารส่วนกลาง',amount:500},
      meters:[{k:'elec',label:'ค่าไฟฟ้า',rate:6},{k:'water',label:'ค่าน้ำประปา',rate:12}]}
   ]
 };
+function allShops(){ return [SHOPS.pharmacy,SHOPS.kiosk,...SHOPS.stalls]; }
 
-/* ประวัติมิเตอร์ที่ปิดงวดแล้ว — key = เดือนที่ใช้ไฟ/น้ำ */
+/* ประวัติมิเตอร์ในหน่วยความจำ — key = 'YYYY-MM' ของเดือนที่ใช้ไฟ/น้ำ */
 const HIST={
-  pharmacy:{'2026-6':{elec:{prev:8000,curr:8393}}},
-  fc2     :{'2026-6':{elec:{prev:3978,curr:4031},water:{prev:129,curr:135}}},
-  fc1     :{'2026-6':{elec:{prev:1200,curr:1246},water:{prev:88,curr:93}}},
-  fc3     :{'2026-6':{elec:{prev:5410,curr:5477},water:{prev:210,curr:218}}},
-  kiosk   :{}
+  pharmacy:{'2026-07':{elec:{prev:8000,curr:8393}}},
+  fc2     :{'2026-07':{elec:{prev:3978,curr:4031},water:{prev:129,curr:135}}},
+  fc1     :{}, fc3:{}, kiosk:{}
 };
 
 const now=new Date();
 const S={
   year:now.getFullYear(), month:now.getMonth(),
   type:'pharmacy', stall:1,
-  shop:null, name:'', rent:0, flat:500,
-  draft:{},                       // {elec:{prev,curr,rate}, ...}
-  showNo:false, showDate:false, showQr:false, pp:'', logo:null
+  shop:null, name:'', rent:0, mgmt:500, flat:500,
+  draft:{}, showNo:false, showDate:false, showQr:false, pp:'', logo:null
 };
-
 const $=id=>document.getElementById(id);
-const key=(y,m)=>y+'-'+m;
-const prevMonth=(y,m)=>m===0?{y:y-1,m:11}:{y,m:m-1};
-
-function utilMonth(){ return prevMonth(S.year,S.month); }
+const pk=(y,m)=>y+'-'+String(m+1).padStart(2,'0');          // m = 0-11
+const parsePk=s=>{const[a,b]=s.split('-').map(Number);return{y:a,m:b-1};};
+const prevOf=(y,m)=>m===0?{y:y-1,m:11}:{y,m:m-1};
+function utilMonth(){ return prevOf(S.year,S.month); }
 
 const LOGO=`<svg viewBox="0 0 62 70" xmlns="http://www.w3.org/2000/svg">
  <path d="M31 3C31 3 8 27 8 41a23 23 0 0 0 46 0C54 27 31 3 31 3Z" fill="#1d6fc0"/>
  <path d="M31 12C31 12 15 30 15 41a16 16 0 0 0 32 0C47 30 31 12 31 12Z" fill="#2f8fdc"/>
  <circle cx="31" cy="43" r="13" fill="#8f1f2b"/><circle cx="31" cy="43" r="8" fill="#1b3d78"/></svg>`;
 
-/* ---------- ตัวเลข → ตัวอักษรไทย ---------- */
+/* ─────────── ตัวเลข → ตัวอักษรไทย ─────────── */
 const D=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
 const P=['','สิบ','ร้อย','พัน','หมื่น','แสน'];
 function chunk(s){let o='';const L=s.length;for(let i=0;i<L;i++){const d=+s[i],p=L-i-1;if(!d)continue;
@@ -338,21 +409,19 @@ function readInt(n){if(n===0)return'ศูนย์';const s=String(n);
 function bahtText(a){const c=Math.round(a*100),b=Math.floor(c/100),st=c%100;
  let o=readInt(b)+'บาท';return st===0?o+'ถ้วน':o+chunk(String(st).replace(/^0+/,''))+'สตางค์';}
 
-/* ---------- พร้อมเพย์ ---------- */
+/* ─────────── พร้อมเพย์ ─────────── */
 const tlv=(i,v)=>i+String(v.length).padStart(2,'0')+v;
 function crc16(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;
  for(let j=0;j<8;j++){c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF;}}
  return c.toString(16).toUpperCase().padStart(4,'0');}
 function ppPayload(t,amt){const x=String(t||'').replace(/\D/g,'');let a;
- if(x.length===13)a=tlv('02',x);
- else if(x.length===15)a=tlv('03',x);
+ if(x.length===13)a=tlv('02',x); else if(x.length===15)a=tlv('03',x);
  else if(x.length===10&&x[0]==='0')a=tlv('01','0066'+x.slice(1));
- else if(x.length===9)a=tlv('01','0066'+x);
- else return null;
+ else if(x.length===9)a=tlv('01','0066'+x); else return null;
  const m=tlv('29',tlv('00','A000000677010111')+a);
  let p=tlv('00','01')+tlv('01',amt>0?'12':'11')+m+tlv('53','764');
  if(amt>0)p+=tlv('54',amt.toFixed(2));
- p+=tlv('58','TH')+'6304';return p+crc16(p);}
+ return (p+=tlv('58','TH')+'6304')+crc16(p);}
 function drawQR(cv,txt){if(typeof qrcode==='undefined')return false;
  try{const q=qrcode(0,'M');q.addData(txt);q.make();const n=q.getModuleCount();
  const g=cv.getContext('2d'),sz=cv.width,cell=Math.floor(sz/(n+2)),pad=Math.floor((sz-cell*n)/2);
@@ -360,80 +429,173 @@ function drawQR(cv,txt){if(typeof qrcode==='undefined')return false;
  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))g.fillRect(pad+c*cell,pad+r*cell,cell,cell);
  return true;}catch(e){return false;}}
 
-/* ---------- โหลดร้าน + ดึงเลขมิเตอร์เก่า ---------- */
-function currentShop(){
-  if(S.type==='foodcourt') return SHOPS.stalls[S.stall];
-  return SHOPS[S.type];
+/* ═══════════ FIRESTORE ═══════════ */
+const FB={ready:false,user:null,db:null,auth:null,fs:null,am:null};
+
+function setConn(state,text,who){
+  const d=$('dot'); d.className='dot'+(state==='on'?' on':state==='busy'?' busy':'');
+  $('connText').textContent=text;
+  $('connWho').textContent=who||'';
+}
+function connErr(t){const e=$('connErr');e.textContent=t||'';e.classList.toggle('on',!!t);}
+
+async function fbInit(){
+  if(!FB_CONFIG.projectId){
+    setConn('off','โหมดออฟไลน์','ยังไม่ได้ตั้งค่า Firebase');
+    return;
+  }
+  setConn('busy','กำลังเชื่อมต่อ…');
+  try{
+    const [appMod,authMod,fsMod]=await Promise.all([
+      import(SDK+'firebase-app.js'),
+      import(SDK+'firebase-auth.js'),
+      import(SDK+'firebase-firestore.js')
+    ]);
+    const app=appMod.initializeApp(FB_CONFIG);
+    FB.auth=authMod.getAuth(app); FB.db=fsMod.getFirestore(app);
+    FB.am=authMod; FB.fs=fsMod; FB.ready=true;
+    authMod.onAuthStateChanged(FB.auth,async u=>{
+      FB.user=u;
+      if(u){
+        $('loginBox').style.display='none';
+        $('logoutBtn').style.display='inline';
+        setConn('busy','กำลังโหลดข้อมูล…',u.email);
+        try{ await pullAll(); setConn('on','เชื่อมต่อแล้ว',u.email); }
+        catch(e){ setConn('off','โหลดข้อมูลไม่สำเร็จ',u.email); connErr(readableErr(e)); }
+        loadShop();
+      }else{
+        $('loginBox').style.display='block';
+        $('logoutBtn').style.display='none';
+        setConn('off','ยังไม่ได้เข้าสู่ระบบ');
+      }
+    });
+  }catch(e){
+    setConn('off','เชื่อมต่อ Firebase ไม่สำเร็จ');
+    connErr('โหลด SDK ไม่ได้ — ตรวจว่าเปิดผ่าน https (GitHub Pages) ไม่ใช่เปิดไฟล์ตรงๆ');
+  }
 }
 
-function lastReading(shopId,mk,k){
+function readableErr(e){
+  const c=(e&&e.code)||'';
+  if(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))
+    return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if(c.includes('permission-denied'))
+    return 'ไม่มีสิทธิ์เข้าถึงข้อมูล — ตรวจ Firestore Rules';
+  if(c.includes('too-many-requests')) return 'ลองผิดหลายครั้งเกินไป รอสักครู่';
+  if(c.includes('unavailable')) return 'เชื่อมต่อฐานข้อมูลไม่ได้ ลองใหม่อีกครั้ง';
+  return (e&&e.message)||'เกิดข้อผิดพลาด';
+}
+
+async function pullAll(){
+  const {collection,getDocs}=FB.fs;
+  const shopSnap=await getDocs(collection(FB.db,'shops'));
+  const byId={}; allShops().forEach(s=>byId[s.id]=s);
+  shopSnap.forEach(d=>{
+    const s=byId[d.id]; if(!s) return;
+    const v=d.data();
+    if(v.name!=null)s.name=v.name;
+    if(v.rent!=null)s.rent=v.rent;
+    if(v.mgmt!=null&&s.mgmt)s.mgmt.amount=v.mgmt;
+    if(v.flat!=null&&s.flat)s.flat.amount=v.flat;
+    if(v.rates)s.meters.forEach(m=>{if(v.rates[m.k]!=null)m.rate=v.rates[m.k];});
+  });
+  const rdSnap=await getDocs(collection(FB.db,'readings'));
+  allShops().forEach(s=>HIST[s.id]={});
+  rdSnap.forEach(d=>{
+    const v=d.data(); if(!v.shopId||!v.period) return;
+    HIST[v.shopId]=HIST[v.shopId]||{};
+    const rec={};
+    if(v.elec)rec.elec=v.elec;
+    if(v.water)rec.water=v.water;
+    HIST[v.shopId][v.period]=rec;
+  });
+}
+
+async function pushReading(shopId,period,rec){
+  if(!FB.ready||!FB.user) return false;
+  const {doc,setDoc,serverTimestamp}=FB.fs;
+  const body={shopId,period,updatedAt:serverTimestamp()};
+  if(rec.elec)body.elec=rec.elec;
+  if(rec.water)body.water=rec.water;
+  await setDoc(doc(FB.db,'readings',`${shopId}_${period}`),body,{merge:true});
+  return true;
+}
+
+async function pushShop(sh){
+  if(!FB.ready||!FB.user) return false;
+  const {doc,setDoc}=FB.fs;
+  const rates={}; sh.meters.forEach(m=>rates[m.k]=m.rate);
+  await setDoc(doc(FB.db,'shops',sh.id),{
+    name:sh.name, rent:sh.rent, rates,
+    mgmt:sh.mgmt?sh.mgmt.amount:null,
+    flat:sh.flat?sh.flat.amount:null
+  },{merge:true});
+  return true;
+}
+
+/* ─────────── ร้าน + มิเตอร์ ─────────── */
+function currentShop(){ return S.type==='foodcourt'?SHOPS.stalls[S.stall]:SHOPS[S.type]; }
+
+function lastCurr(shopId,period,k){
   const h=HIST[shopId]||{};
-  if(h[mk]&&h[mk][k]) return h[mk][k].prev;      // งวดนี้เคยบันทึกแล้ว
-  const p=prevMonth(...mk.split('-').map(Number));
-  const pk=key(p.y,p.m);
-  if(h[pk]&&h[pk][k]) return h[pk][k].curr;      // เอาเลขปิดของงวดก่อน
-  let best=null,bestKey='';
-  for(const kk in h){ if(h[kk][k]&&kk>bestKey){best=h[kk][k].curr;bestKey=kk;} }
+  if(h[period]&&h[period][k]) return h[period][k].prev;
+  const {y,m}=parsePk(period), p=prevOf(y,m), ppk=pk(p.y,p.m);
+  if(h[ppk]&&h[ppk][k]) return h[ppk][k].curr;
+  let best=null,bk='';
+  for(const kk in h){ if(h[kk][k]&&kk<period&&kk>bk){best=h[kk][k].curr;bk=kk;} }
   return best===null?0:best;
 }
-
-function lastUnits(shopId,mk,k){
-  const h=HIST[shopId]||{};
-  const p=prevMonth(...mk.split('-').map(Number));
-  const r=h[key(p.y,p.m)]&&h[key(p.y,p.m)][k];
-  return r?Math.max(0,r.curr-r.prev):null;
+function unitsAt(shopId,period,k){
+  const r=(HIST[shopId]||{})[period];
+  return r&&r[k]?Math.max(0,r[k].curr-r[k].prev):null;
 }
 
 function loadShop(){
   const sh=currentShop();
   S.shop=sh; S.name=sh.name; S.rent=sh.rent;
-  if(sh.flat) S.flat=sh.flat.amount;
-  const um=utilMonth(), mk=key(um.y,um.m);
+  if(sh.flat)S.flat=sh.flat.amount;
+  if(sh.mgmt)S.mgmt=sh.mgmt.amount;
+  const um=utilMonth(), period=pk(um.y,um.m);
   S.draft={};
   sh.meters.forEach(m=>{
-    const h=(HIST[sh.id]||{})[mk];
-    const rec=h&&h[m.k];
-    const prev=rec?rec.prev:lastReading(sh.id,mk,m.k);
-    S.draft[m.k]={prev,curr:rec?rec.curr:prev,rate:m.rate,locked:true};
+    const rec=(HIST[sh.id]||{})[period];
+    const r=rec&&rec[m.k];
+    const prev=r?r.prev:lastCurr(sh.id,period,m.k);
+    S.draft[m.k]={prev,curr:r?r.curr:prev,rate:m.rate,locked:true};
   });
   $('shopName').value=S.name;
   $('rent').value=S.rent;
+  $('mgmt').value=S.mgmt;
   $('flat').value=S.flat;
+  $('mgmtBox').style.display=sh.mgmt?'block':'none';
   $('flatBox').style.display=sh.flat?'block':'none';
   $('stallPick').style.display=S.type==='foodcourt'?'block':'none';
+  $('bfBtn').style.display=sh.meters.length?'block':'none';
   renderMeters(); render();
 }
 
-/* ---------- แผงมิเตอร์ ---------- */
 function renderMeters(){
   const box=$('meters'); box.innerHTML='';
   const sh=S.shop; if(!sh.meters.length) return;
-  const um=utilMonth(), mk=key(um.y,um.m);
+  const um=utilMonth(), period=pk(um.y,um.m);
+  const p=prevOf(um.y,um.m), pprd=pk(p.y,p.m);
 
   sh.meters.forEach(m=>{
-    const d=S.draft[m.k];
-    const u=d.curr-d.prev;
-    const prevU=lastUnits(sh.id,mk,m.k);
+    const d=S.draft[m.k], u=d.curr-d.prev;
+    const prevU=unitsAt(sh.id,pprd,m.k);
     const spike=prevU!==null&&prevU>0&&u>prevU*3;
     const bad=u<0, blank=u===0;
-
     const el=document.createElement('div');
     el.className='meter';
     el.innerHTML=`
       <h3>${m.label}<span>ประจำเดือน ${MONTHS[um.m]}</span></h3>
       <div class="mrow">
-        <div class="field" style="margin:0">
-          <label>เลขเก่า</label>
-          <input class="ctl num" data-k="prev" type="number" value="${d.prev}" ${d.locked?'readonly':''}>
-        </div>
-        <div class="field" style="margin:0">
-          <label>เลขใหม่</label>
-          <input class="ctl num" data-k="curr" type="number" value="${d.curr}">
-        </div>
-        <div class="field" style="margin:0">
-          <label>บาท/หน่วย</label>
-          <input class="ctl num" data-k="rate" type="number" step="0.01" value="${d.rate}">
-        </div>
+        <div class="field" style="margin:0"><label>เลขเก่า</label>
+          <input class="ctl num" data-k="prev" type="number" value="${d.prev}" ${d.locked?'readonly':''}></div>
+        <div class="field" style="margin:0"><label>เลขใหม่</label>
+          <input class="ctl num" data-k="curr" type="number" value="${d.curr}"></div>
+        <div class="field" style="margin:0"><label>บาท/หน่วย</label>
+          <input class="ctl num" data-k="rate" type="number" step="0.01" value="${d.rate}"></div>
       </div>
       <div class="strip ${bad||spike?'warn':''}">
         <div><span class="cap">เลขเก่า</span><span class="val">${d.prev}</span></div>
@@ -445,16 +607,12 @@ function renderMeters(){
       <p class="msg warn ${spike?'on':''}">ใช้ไป ${u} หน่วย มากกว่างวดก่อน (${prevU}) เกิน 3 เท่า — ลองทวนเลขอีกครั้ง</p>
       <p class="msg info ${blank&&!bad?'on':''}">ยังไม่ได้กรอกเลขใหม่</p>
       <p style="margin:8px 0 0"><button class="linkbtn" data-k="unlock">${d.locked?'เปลี่ยนมิเตอร์ / แก้เลขเก่า':'ล็อกเลขเก่ากลับ'}</button></p>`;
-
     el.querySelectorAll('[data-k]').forEach(inp=>{
       const f=inp.dataset.k;
-      if(f==='unlock'){
-        inp.addEventListener('click',()=>{d.locked=!d.locked;renderMeters();});
-        return;
-      }
+      if(f==='unlock'){inp.addEventListener('click',()=>{d.locked=!d.locked;renderMeters();});return;}
       inp.addEventListener('input',()=>{
         d[f]=Number(inp.value)||0;
-        if(f==='rate'){render();}
+        if(f==='rate'){m.rate=d.rate;render();}
         else{renderMeters();render();}
       });
     });
@@ -462,20 +620,20 @@ function renderMeters(){
   });
 }
 
-/* ---------- ใบเสร็จ ---------- */
+/* ─────────── ใบเสร็จ ─────────── */
 function lines(){
-  const out=[]; const um=utilMonth();
+  const out=[], um=utilMonth(), uM=MONTHS[um.m];
   out.push({label:'ค่าบริการสถานที่',month:MONTHS[S.month],units:'',amount:Number(S.rent)||0});
   (S.shop.meters||[]).forEach(m=>{
     const d=S.draft[m.k], u=Math.max(0,d.curr-d.prev);
-    out.push({label:m.label,month:MONTHS[um.m],units:u,amount:u*(Number(d.rate)||0),
-              meter:{prev:d.prev,curr:d.curr}});
+    out.push({label:m.label,month:uM,units:u,amount:u*(Number(d.rate)||0),meter:{prev:d.prev,curr:d.curr}});
   });
-  if(S.shop.flat) out.push({label:S.shop.flat.label,month:MONTHS[um.m],units:'',amount:Number(S.flat)||0});
+  if(S.shop.mgmt) out.push({label:S.shop.mgmt.label,month:uM,units:'',amount:Number(S.mgmt)||0});
+  if(S.shop.flat) out.push({label:S.shop.flat.label,month:uM,units:'',amount:Number(S.flat)||0});
   return out;
 }
-
-function money(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+const money=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function render(){
   $('dRent').textContent=MONTHS[S.month];
@@ -492,17 +650,13 @@ function render(){
   $('rcBody').innerHTML=L.map((l,i)=>{
     total+=l.amount;
     const mt=l.meter?`<span class="meterline">${l.meter.prev}<em>ถึง</em>${l.meter.curr}</span>`:'';
-    return `<tr><td class="c-no">${i+1}</td>
-      <td class="c-desc">${esc(l.label)}${mt}</td>
-      <td class="c-date">${l.month}</td>
-      <td class="c-unit unit">${l.units}</td>
+    return `<tr><td class="c-no">${i+1}</td><td class="c-desc">${esc(l.label)}${mt}</td>
+      <td class="c-date">${l.month}</td><td class="c-unit unit">${l.units}</td>
       <td class="c-amt amt">${money(l.amount)}</td></tr>`;
-  }).join('')+`<tr class="fill"><td colspan="5"></td></tr>`;
+  }).join('')+`<tr class="fill"><td class="c-no"></td><td class="c-desc"></td><td class="c-date"></td><td class="c-unit"></td><td class="c-amt"></td></tr>`;
 
   const p=PAYEE[S.shop.payee];
-  $('rcBank').textContent=p.bank;
-  $('rcAcct').textContent=p.acct;
-  $('rcPayee').textContent=p.name;
+  $('rcBank').textContent=p.bank; $('rcAcct').textContent=p.acct; $('rcPayee').textContent=p.name;
   $('rcTotal').textContent=money(total);
   $('rcWords').textContent='( '+bahtText(total)+' )';
 
@@ -515,44 +669,112 @@ function render(){
   } else qb.style.display='none';
 }
 
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+/* ─────────── กรอกย้อนหลัง ─────────── */
+const BF={rows:[]};
+function openBackfill(){
+  const sh=S.shop; if(!sh.meters.length) return;
+  const um=utilMonth();
+  BF.rows=[];
+  for(let i=2;i>=0;i--){                      // 3 งวดล่าสุด เก่า → ใหม่
+    let y=um.y,m=um.m-i;
+    while(m<0){m+=12;y--;}
+    const period=pk(y,m);
+    const rec=(HIST[sh.id]||{})[period]||{};
+    const row={period,label:`${MONTHS[m]} ${y+543}`,vals:{}};
+    sh.meters.forEach(mt=>{
+      const r=rec[mt.k];
+      row.vals[mt.k]={prev:r?r.prev:'',curr:r?r.curr:''};
+    });
+    BF.rows.push(row);
+  }
+  $('bfSub').textContent=`${sh.name} — กรอกได้ทั้ง 3 งวด แล้วกดบันทึกทีเดียว`;
+  renderBackfill();
+  $('bfScrim').classList.add('on');
+}
 
-/* ---------- เหตุการณ์ ---------- */
-(function buildPeriod(){
+function renderBackfill(){
+  const sh=S.shop;
+  const head=['เดือน'];
+  sh.meters.forEach(m=>{head.push(m.label+' เก่า',m.label+' ใหม่','หน่วย');});
+  let html='<table class="bf"><thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+  BF.rows.forEach((r,ri)=>{
+    html+=`<tr><td class="m">${r.label}</td>`;
+    sh.meters.forEach(m=>{
+      const v=r.vals[m.k];
+      const u=(v.prev!==''&&v.curr!=='')?(Number(v.curr)-Number(v.prev)):null;
+      html+=`<td><input type="number" data-r="${ri}" data-k="${m.k}" data-f="prev" value="${v.prev}"></td>
+             <td><input type="number" data-r="${ri}" data-k="${m.k}" data-f="curr" value="${v.curr}"></td>
+             <td class="u ${u!==null&&u<0?'bad':''}">${u===null?'—':u}</td>`;
+    });
+    html+='</tr>';
+  });
+  $('bfTable').innerHTML=html+'</tbody></table>';
+
+  $('bfTable').querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const ri=+inp.dataset.r, k=inp.dataset.k, f=inp.dataset.f;
+      BF.rows[ri].vals[k][f]=inp.value;
+      if(f==='curr'&&BF.rows[ri+1]&&BF.rows[ri+1].vals[k].prev===''){
+        BF.rows[ri+1].vals[k].prev=inp.value;      // ต่อยอดให้เดือนถัดไป
+      }
+      renderBackfill();
+    });
+  });
+}
+
+async function saveBackfill(){
+  const sh=S.shop, btn=$('bfSave');
+  btn.disabled=true; btn.textContent='กำลังบันทึก…';
+  let n=0, online=FB.ready&&FB.user;
+  try{
+    for(const r of BF.rows){
+      const rec={}; let any=false;
+      sh.meters.forEach(m=>{
+        const v=r.vals[m.k];
+        if(v.prev!==''&&v.curr!==''){ rec[m.k]={prev:Number(v.prev),curr:Number(v.curr)}; any=true; }
+      });
+      if(!any) continue;
+      HIST[sh.id]=HIST[sh.id]||{};
+      HIST[sh.id][r.period]=rec;
+      if(online) await pushReading(sh.id,r.period,rec);
+      n++;
+    }
+    flash('bfFlash','ok',online?`บันทึกขึ้น Firestore แล้ว ${n} งวด`:`บันทึกในเครื่องแล้ว ${n} งวด (ยังไม่ได้เชื่อม Firebase)`);
+    loadShop();
+  }catch(e){
+    flash('bfFlash','bad','บันทึกไม่สำเร็จ — '+readableErr(e));
+  }
+  btn.disabled=false; btn.textContent='บันทึกทั้งหมด';
+}
+
+/* ─────────── เหตุการณ์ ─────────── */
+(function(){
   const o=[];
   for(let y=S.year-1;y<=S.year+1;y++)
-    for(let m=0;m<12;m++) o.push(`<option value="${y}-${m}">${MONTHS[m]} ${y+543}</option>`);
+    for(let m=0;m<12;m++) o.push(`<option value="${pk(y,m)}">${MONTHS[m]} ${y+543}</option>`);
   $('period').innerHTML=o.join('');
-  $('period').value=key(S.year,S.month);
+  $('period').value=pk(S.year,S.month);
 })();
 
 $('period').addEventListener('change',e=>{
-  const [y,m]=e.target.value.split('-').map(Number);
-  S.year=y;S.month=m;loadShop();
+  const {y,m}=parsePk(e.target.value); S.year=y; S.month=m; loadShop();
 });
-document.querySelectorAll('#typeSeg button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('#typeSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    S.type=b.dataset.type; loadShop();
-  });
-});
-document.querySelectorAll('#stallSeg button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('#stallSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    S.stall=Number(b.dataset.stall); loadShop();
-  });
-});
-$('shopName').addEventListener('input',e=>{
-  S.name=e.target.value; S.shop.name=e.target.value; render();
-});
+document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#typeSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); S.type=b.dataset.type; loadShop();
+}));
+document.querySelectorAll('#stallSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#stallSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); S.stall=+b.dataset.stall; loadShop();
+}));
+$('shopName').addEventListener('input',e=>{S.name=e.target.value;S.shop.name=e.target.value;render();});
 $('rent').addEventListener('input',e=>{S.rent=Number(e.target.value)||0;S.shop.rent=S.rent;render();});
-$('flat').addEventListener('input',e=>{S.flat=Number(e.target.value)||0;render();});
+$('mgmt').addEventListener('input',e=>{S.mgmt=Number(e.target.value)||0;if(S.shop.mgmt)S.shop.mgmt.amount=S.mgmt;render();});
+$('flat').addEventListener('input',e=>{S.flat=Number(e.target.value)||0;if(S.shop.flat)S.shop.flat.amount=S.flat;render();});
 $('flatEdit').addEventListener('click',()=>{
   const f=$('flat'); f.readOnly=!f.readOnly;
   $('flatEdit').textContent=f.readOnly?'แก้ยอดเหมา':'ล็อกยอดเหมากลับ';
-  if(!f.readOnly) f.focus();
+  if(!f.readOnly)f.focus();
 });
 $('tgNo').addEventListener('change',e=>{S.showNo=e.target.checked;render();});
 $('tgDate').addEventListener('change',e=>{S.showDate=e.target.checked;render();});
@@ -563,23 +785,47 @@ $('logoFile').addEventListener('change',e=>{
   const r=new FileReader(); r.onload=()=>{S.logo=r.result;render();}; r.readAsDataURL(f);
 });
 
-$('save').addEventListener('click',()=>{
-  const sh=S.shop; if(!sh.meters.length){flash('ร้านนี้ไม่มีมิเตอร์');return;}
-  const um=utilMonth(), mk=key(um.y,um.m);
-  HIST[sh.id]=HIST[sh.id]||{};
-  HIST[sh.id][mk]={};
-  sh.meters.forEach(m=>{const d=S.draft[m.k];HIST[sh.id][mk][m.k]={prev:d.prev,curr:d.curr};});
-  flash(`บันทึกแล้ว — เดือนถัดไปจะเริ่มจากเลขนี้`);
+$('loginBtn').addEventListener('click',async()=>{
+  connErr('');
+  const b=$('loginBtn'); b.disabled=true; b.textContent='กำลังเข้าสู่ระบบ…';
+  try{ await FB.am.signInWithEmailAndPassword(FB.auth,$('email').value.trim(),$('pass').value); }
+  catch(e){ connErr(readableErr(e)); }
+  b.disabled=false; b.textContent='เข้าสู่ระบบ';
 });
-function flash(t){const e=$('savedMsg');e.textContent=t;e.classList.add('on');
- clearTimeout(flash._t);flash._t=setTimeout(()=>e.classList.remove('on'),3200);}
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click();});
+$('logoutBtn').addEventListener('click',()=>FB.am.signOut(FB.auth));
+
+$('bfBtn').addEventListener('click',openBackfill);
+$('bfClose').addEventListener('click',()=>$('bfScrim').classList.remove('on'));
+$('bfSave').addEventListener('click',saveBackfill);
+$('bfScrim').addEventListener('click',e=>{if(e.target===$('bfScrim'))$('bfScrim').classList.remove('on');});
+
+$('save').addEventListener('click',async()=>{
+  const sh=S.shop, btn=$('save');
+  const um=utilMonth(), period=pk(um.y,um.m);
+  btn.disabled=true; btn.textContent='กำลังบันทึก…';
+  try{
+    if(sh.meters.length){
+      const rec={}; sh.meters.forEach(m=>{const d=S.draft[m.k];rec[m.k]={prev:d.prev,curr:d.curr};});
+      HIST[sh.id]=HIST[sh.id]||{}; HIST[sh.id][period]=rec;
+      if(FB.ready&&FB.user) await pushReading(sh.id,period,rec);
+    }
+    if(FB.ready&&FB.user) await pushShop(sh);
+    flash('flashMsg','ok',(FB.ready&&FB.user)?'บันทึกขึ้น Firestore แล้ว':'บันทึกในเครื่องแล้ว (ยังไม่ได้เชื่อม Firebase)');
+  }catch(e){ flash('flashMsg','bad','บันทึกไม่สำเร็จ — '+readableErr(e)); }
+  btn.disabled=false; btn.textContent='บันทึกงวดนี้';
+});
+
+function flash(id,kind,t){
+  const e=$(id); e.textContent=t; e.className='flash on '+kind;
+  clearTimeout(flash['_'+id]); flash['_'+id]=setTimeout(()=>e.classList.remove('on'),4200);
+}
 
 $('pr').addEventListener('click',()=>window.print());
 $('dl').addEventListener('click',async()=>{
   const btn=$('dl'),paper=$('paper');
   if(typeof html2canvas==='undefined'){window.print();return;}
-  btn.disabled=true;btn.textContent='กำลังสร้างรูป…';
-  paper.style.transform='none';
+  btn.disabled=true; btn.textContent='กำลังสร้างรูป…'; paper.style.transform='none';
   try{
     const cv=await html2canvas(paper,{scale:2,backgroundColor:'#ffffff',useCORS:true});
     const a=document.createElement('a');
@@ -601,7 +847,7 @@ function fit(){
 }
 window.addEventListener('resize',fit);
 
-loadShop(); fit();
+loadShop(); fit(); fbInit();
 </script>
 </body>
 </html>

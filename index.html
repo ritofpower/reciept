@@ -281,7 +281,10 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
   </section>
 
   <div class="acts">
-    <button class="btn" id="dl">ดาวน์โหลดรูป</button>
+    <button class="btn" id="share">แชร์เข้า LINE</button>
+  </div>
+  <div class="acts">
+    <button class="btn ghost" id="dl">ดาวน์โหลดรูป</button>
     <button class="btn ghost" id="pr">พิมพ์</button>
   </div>
   <div class="acts">
@@ -295,7 +298,7 @@ td.totamt{text-align:right;vertical-align:middle;font-size:15px;font-variant-num
     <div class="paper" id="paper">
       <div class="sheet">
         <div class="topright">
-          <div class="doc-title">ใบแจ้งหนี้ <span id="rcShop"></span></div>
+          <div class="doc-title">ใบเสร็จรับเงิน <span id="rcShop"></span></div>
           <div class="docmeta" id="docmeta"></div>
         </div>
         <div class="letterhead">
@@ -1033,22 +1036,81 @@ function flash(id,kind,t){
   clearTimeout(flash['_'+id]); flash['_'+id]=setTimeout(()=>e.classList.remove('on'),4200);
 }
 
+/* ─────────── สร้างรูป / แชร์ ─────────── */
+const SHARE={key:null,file:null,blob:null};
+function stateKey(){
+  return JSON.stringify([S.shop.id,S.name,S.year,S.month,S.rent,S.mgmt,S.flat,
+                         S.draft,S.showNo,S.showDate,S.showQr,S.pp,!!S.logo]);
+}
+function fileName(){ return `ใบเสร็จ-${S.name}-${MONTHS[S.month]}${S.year+543}.png`; }
+
+async function buildImage(){
+  const k=stateKey();
+  if(SHARE.key===k&&SHARE.file) return SHARE.file;      // ใช้ของเดิม ไม่ต้องเรนเดอร์ซ้ำ
+  const paper=$('paper'), prev=paper.style.transform;
+  paper.style.transform='none';
+  let cv;
+  try{ cv=await html2canvas(paper,{scale:2,backgroundColor:'#ffffff',useCORS:true}); }
+  finally{ paper.style.transform=prev; fit(); }
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  SHARE.key=k; SHARE.blob=blob;
+  SHARE.file=new File([blob],fileName(),{type:'image/png'});
+  return SHARE.file;
+}
+
+async function shareReceipt(){
+  const btn=$('share');
+  const cached=SHARE.key===stateKey()&&SHARE.file;
+  if(!cached){ btn.disabled=true; btn.textContent='กำลังเตรียมรูป…'; }
+  let file;
+  try{ file=await buildImage(); }
+  catch(e){ btn.disabled=false; btn.textContent='แชร์เข้า LINE';
+            flash('flashMsg','bad','สร้างรูปไม่สำเร็จ'); return; }
+  btn.disabled=false; btn.textContent='แชร์เข้า LINE';
+
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:'ใบเสร็จค่าเช่า',
+        text:`ใบเสร็จ ${S.name} ประจำเดือน${MONTHS[S.month]} ${S.year+543}`});
+    }catch(e){
+      if(e&&e.name==='AbortError') return;                      // ผู้ใช้กดยกเลิกเอง
+      if(e&&e.name==='NotAllowedError'){
+        flash('flashMsg','ok','รูปพร้อมแล้ว — กดแชร์อีกครั้งได้เลย'); return;
+      }
+      flash('flashMsg','bad','แชร์ไม่สำเร็จ — '+(e.message||''));
+    }
+    return;
+  }
+
+  /* คอมพิวเตอร์: ก๊อปรูปใส่คลิปบอร์ด แล้ววางในแชท LINE ได้เลย */
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'image/png':SHARE.blob})]);
+    flash('flashMsg','ok','คัดลอกรูปแล้ว — เปิดแชท LINE แล้วกด Ctrl+V วางได้เลย');
+  }catch(e){
+    const a=document.createElement('a');
+    a.download=fileName(); a.href=URL.createObjectURL(SHARE.blob); a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    flash('flashMsg','ok','เครื่องนี้แชร์ตรงไม่ได้ — ดาวน์โหลดรูปให้แล้ว ลากไปวางในแชท LINE');
+  }
+}
+$('share').addEventListener('click',shareReceipt);
+
 $('pr').addEventListener('click',()=>window.print());
 $('dl').addEventListener('click',async()=>{
-  const btn=$('dl'),paper=$('paper');
+  const btn=$('dl');
   if(typeof html2canvas==='undefined'){window.print();return;}
-  btn.disabled=true; btn.textContent='กำลังสร้างรูป…'; paper.style.transform='none';
+  btn.disabled=true; btn.textContent='กำลังสร้างรูป…';
   try{
-    const cv=await html2canvas(paper,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    await buildImage();
     const a=document.createElement('a');
-    a.download=`ใบเสร็จ-${S.name}-${MONTHS[S.month]}${S.year+543}.png`;
-    a.href=cv.toDataURL('image/png'); a.click();
+    a.download=fileName(); a.href=URL.createObjectURL(SHARE.blob); a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   }catch(err){
     btn.textContent='สร้างรูปไม่สำเร็จ — ใช้ปุ่มพิมพ์';
     setTimeout(()=>{btn.textContent='ดาวน์โหลดรูป';btn.disabled=false;},2600);
-    fit(); return;
+    return;
   }
-  fit(); btn.disabled=false; btn.textContent='ดาวน์โหลดรูป';
+  btn.disabled=false; btn.textContent='ดาวน์โหลดรูป';
 });
 
 function fit(){
